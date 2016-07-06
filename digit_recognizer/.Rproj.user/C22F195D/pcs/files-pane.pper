@@ -1,0 +1,9 @@
+{
+    "path" : "~/kaggle/digit_recognizer",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}
