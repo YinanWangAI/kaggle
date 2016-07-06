@@ -126,6 +126,7 @@ cnn <- mx.model.FeedForward.create(
   learning.rate = 0.05,
   eval.metric = mx.metric.accuracy)
 test_pred <- predict(cnn, test_array)
+test_pred <- max.col(t(test_pred)) - 1
 submit <- data.table(
   ImageID = 1:length(test_pred),
   Label = test_pred
