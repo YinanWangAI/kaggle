@@ -60,11 +60,11 @@ valid <- as.data.table(data.frame(all_data[3]))
 train_all <- rbind(train, valid)
 
 # benchmark validation error by random forest-----------------------------------
-train_x <- as.matrix(train[, 2:ncol(train), with = F])
+train_x <- as.matrix(train[, 2:ncol(train), with = F]) / 255  # scale to [0, 1]
 train_y <- as.factor(train[[1]])
-valid_x <- as.matrix(valid[, 2:ncol(valid), with = F])
+valid_x <- as.matrix(valid[, 2:ncol(valid), with = F]) / 255
 valid_y <- as.factor(valid[[1]])
-train_all_x <- as.matrix(train_all[, 2:ncol(train_all), with = F])
+train_all_x <- as.matrix(train_all[, 2:ncol(train_all), with = F]) / 255
 train_all_y <- as.factor(train_all[[1]])
 test_x <- as.matrix(test)
 
@@ -121,12 +121,12 @@ dim(test_array) <- c(28, 28, 1, nrow(test_x))
 
 data <- mx.symbol.Variable("data")
 # first convolutional layer
-conv1 <- mx.symbol.Convolution(data = data, kernel = c(5, 5), num_filter = 32)
+conv1 <- mx.symbol.Convolution(data = data, kernel = c(5, 5), num_filter = 64)
 conv1_activate <- mx.symbol.Activation(data = conv1, act_type = "relu")
 pool1 <- mx.symbol.Pooling(data = conv1_activate, pool_type = "max",
                            kernel = c(2, 2), stride = c(2, 2))
 # second convolutional layer
-conv2 <- mx.symbol.Convolution(data = pool1, kernel = c(5, 5), num_filter = 16)
+conv2 <- mx.symbol.Convolution(data = pool1, kernel = c(5, 5), num_filter = 32)
 conv2_activate <- mx.symbol.Activation(data = conv2, act_type = "relu")
 pool2 <- mx.symbol.Pooling(data = conv2_activate, pool_type = "max",
                            kernel = c(2, 2), stride = c(2, 2))
@@ -137,18 +137,11 @@ fc1_activate <- mx.symbol.Activation(data = fc1, act_type = "relu")
 # output layer
 fc2 <- mx.symbol.FullyConnected(data = fc1_activate, num_hidden = 10)
 cost <- mx.symbol.SoftmaxOutput(data = fc2)
-
-
-# cnn <- mx.model.FeedForward.create(
-#   cost, X = train_array, y = train_y,
-#   num.round = 10, array.batch.size = 100,
-#   learning.rate = 0.05, momentum = 0.9, wd = 0.00001,
-#   eval.metric=mx.metric.accuracy,
-#   epoch.end.callback = mx.callback.log.train.metric(100))
+# train the model
 cnn <- mx.model.FeedForward.create(
   cost, 
   X = train_array, y = as.numeric(as.character(train_y)),
-  num.round = 10, array.batch.size = 100,
+  num.round = 10, array.batch.size = 50,
   learning.rate = 0.05, momentum = 0.9,
   eval.metric = mx.metric.accuracy,
   epoch.end.callback = mx.callback.log.train.metric(100))
@@ -160,9 +153,10 @@ valid_accuracy <- sum(as.numeric(as.character(valid_y)) == pred_label) /
 cnn <- mx.model.FeedForward.create(
   cost, 
   X = train_all_array, y = as.numeric(as.character(train_all_y)),
-  num.round = 10, array.batch.size = 100,
-  learning.rate = 0.05,
-  eval.metric = mx.metric.accuracy)
+  num.round = 10, array.batch.size = 50,
+  learning.rate = 0.05, momentum = 0.9,
+  eval.metric = mx.metric.accuracy,
+  epoch.end.callback = mx.callback.log.train.metric(100))
 test_pred <- predict(cnn, test_array)
 test_pred <- max.col(t(test_pred)) - 1
 # submit <- data.table(
